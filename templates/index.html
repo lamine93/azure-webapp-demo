@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Azure Flask + Postgres</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 720px; }
+    header { margin-bottom: 1rem; }
+    form, .card { border: 1px solid #ddd; padding: 1rem; border-radius: .5rem; margin-bottom:1rem;}
+    input, button { padding:.6rem .8rem; }
+    ul { list-style: none; padding: 0; }
+    li { padding:.5rem 0; border-bottom:1px dashed #eee; }
+    code { background:#f6f8fa; padding:.1rem .3rem; border-radius:.25rem;}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Azure Flask + PostgreSQL</h1>
+    <p>Hello from host: <code>{{ hostname }}</code></p>
+  </header>
+
+  <section class="card">
+    <h3>Ajouter un message</h3>
+    <form id="msgForm">
+      <input id="content" placeholder="Votre message..." required />
+      <button type="submit">Envoyer</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h3>Messages</h3>
+    <ul id="list"></ul>
+  </section>
+
+  <script>
+    async function load() {
+      const res = await fetch("/api/messages");
+      const items = await res.json();
+      const ul = document.getElementById("list");
+      ul.innerHTML = "";
+      for (const m of items) {
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>#${m.id}</strong> ${m.content} <small>(${m.created_at})</small>
+                        <button data-id="${m.id}" style="margin-left:10px;">Supprimer</button>`;
+        ul.appendChild(li);
+      }
+    }
+
+    document.getElementById("msgForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const content = document.getElementById("content").value.trim();
+      if (!content) return;
+      await fetch("/api/messages", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ content })
+      });
+      document.getElementById("content").value = "";
+      await load();
+    });
+
+    document.getElementById("list").addEventListener("click", async (e) => {
+      if (e.target.tagName === "BUTTON") {
+        const id = e.target.getAttribute("data-id");
+        await fetch(`/api/messages/${id}`, { method: "DELETE" });
+        await load();
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>
